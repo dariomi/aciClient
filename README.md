@@ -1,6 +1,6 @@
-# aciClient
+# aciclient
 
-![PyPi](https://img.shields.io/pypi/v/aciClient)
+![PyPi](https://img.shields.io/pypi/v/aciclient)
 
 A python wrapper to the Cisco ACI REST-API.
 
@@ -32,53 +32,47 @@ logger = logging.getLogger(__name__)
 
 credentials = AciCredentialsPassword(ip="devnetsandboxdc.cisco.com", username="admin", password="ciscopstd")
 
-with AciClient(credentials, logger=logger)
-    aciclient.getJson(uri)
-    aciclient.postJson(config)
-    aciclient.deleteMo(dn)
+with AciClient(credentials, logger=logger) as aciclient:
+    aciclient.getJson()
+    aciclient.postJson()
+    aciclient.deleteMo()
     
 ```
 
-For automatic authentication token refresh you can set variable ```refresh``` to True
-
+### !TBD! Certificate/signature !TBD!
 ```python
-aciclient = aciClient.ACI(apic_hostname, apic_username, apic_password, refresh=True)    
-```
-
-
-### Certificate/signature
-```python
-import aciClient
 import logging
+from aciclient import AciClient, AciCredentialsCertificate
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-aciclient = aciClient.ACICert(apic_hostname, path_to_privatekey_file, certificate_dn)
+credentials = AciCredentialsCertificate(ip="devnetsandboxdc.cisco.com", pk_path=pk_path, cert_dn=cert_dn)
 
-try:
-    aciclient.getJson(uri)
-    aciclient.postJson(config)
-    aciclient.deleteMo(dn)
-except Exception as e:
-    logger.exception("Stack Trace")
+with AciClient(credentials, logger=logger) as aciclient:
+    aciclient.get_json()
+    aciclient.post_json()
+    aciclient.delete_mo()
+    
 ```
 
 ## Examples
 
 ### get config without params
 ```python
-tenants = aciclient.getJson('class/fvTenant')
-for tenant in tenants.data:
-    print(tenant["fvTenant"]["attributes"]["dn"])
+with AciClient(credentials, logger=logger) as aciclient:
+    tenants = aciclient.get_json('class/fvTenant')
+    for tenant in tenants.data:
+        print(tenant["fvTenant"]["attributes"]["dn"])
 ```
 
 ### get config with params
 ```python
 params = {"order-by": "fvTenant.dn|asc"}
-tenants = aciclient.getJson('class/fvTenant', ep_params=params)
-for mo in tenants:
-    print(f'tenant DN: {mo["fvTenant"]["attributes"]["dn"]}')
+with AciClient(credentials, logger=logger) as aciclient:
+    tenants = aciclient.get_json('class/fvTenant', ep_params=params)
+    for mo in tenants:
+        print(f'tenant DN: {mo["fvTenant"]["attributes"]["dn"]}')
 ```
 
 ### post payload without path
@@ -90,19 +84,21 @@ payload = {
   }
  }
 }
-
-aciclient.postJson(payload)
+with AciClient(credentials, logger=logger) as aciclient:
+    aciclient.post_json(payload)
 ```
 
 ### delete MOs
 ```python
-aciclient.deleteMo('uni/tn-XYZ')
+with AciClient(credentials, logger=logger) as aciclient:
+    aciclient.delete_mo('uni/tn-XYZ')
 ```
 
 ### create snapshot
 You can specify a tenant in variable ```target_dn``` or not provide any to do a fabric-wide snapshot.
 ```python
-aciclient.snapshot(description='test', target_dn='/uni/tn-test')
+with AciClient(credentials, logger=logger) as aciclient:
+    aciclient.snapshot(description='test', target_dn='/uni/tn-test')
 ```
 
 ## Testing

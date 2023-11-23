@@ -26,5 +26,5 @@ class AciCredentialsPassword(AciCredentials):
 
 @dataclass
 class AciCredentialsCertificate(AciCredentials):
-    _pk_path: str
-    _cert_dn: str
+    pk_path: str
+    cert_dn: str
