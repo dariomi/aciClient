@@ -10,6 +10,8 @@ TBD acciclient for doing Username/Password based RestCalls to the APIC
 from json.decoder import JSONDecodeError
 import logging
 import requests
+import urllib3
+from requests.adapters import HTTPAdapter
 from threading import Timer, Thread
 from aciclient.exceptions import AciClientException
 from aciclient.models import (
@@ -23,16 +25,35 @@ from aciclient.models import (
 class RestAdapter:
     def __init__(
         self,
-        session: requests.Session,
         base_url: str,
         credentials: AciCredentials,
         logger: logging.Logger,
+        verify_ssl: bool,
     ):
-        self.session = session
         self.base_url = base_url
         self._credentials = credentials
         self.refresh_thread: Thread = None
         self._logger = logger
+
+        # See https://urllib3.readthedocs.io/en/stable/reference/urllib3.util.html
+        self.total_retry_attempts = 5
+        self.retry_backoff_factor = 10  # in seconds; multiplied by previous attempts.
+
+        retry_strategy = urllib3.Retry(
+            total=self.total_retry_attempts,
+            backoff_factor=self.retry_backoff_factor,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+
+        self.session = requests.Session()
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+
+        # Disable warnings for insecure requests with requests library
+        if not verify_ssl:
+            self.session.verify = verify_ssl
+            requests.packages.urllib3.disable_warnings()
 
         self._login()
 

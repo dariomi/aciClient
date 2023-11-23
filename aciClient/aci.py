@@ -27,14 +27,9 @@ class AciClient:
 
     def __enter__(self):
         self.base_url = f"https://{self._credentials.ip}/api/"
-        self.session = requests.Session()
-        # Disable warnings for insecure requests with requests library
-        if not self.verify_ssl:
-            self.session.verify = self.verify_ssl
-            requests.packages.urllib3.disable_warnings()
 
         self.rest_adapter = RestAdapter(
-            self.session, self.base_url, self._credentials, self._logger
+            self.base_url, self._credentials, self._logger, self.verify_ssl
         )
         return self
 
