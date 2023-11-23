@@ -3,3 +3,4 @@
 > * v1.00, 11.2020 -- Adjustments for OpenSource - Andreas Graber
 > * v1.3, 06.2021 -- Snapshot creation added - Dario Kaelin
 > * v1.5, 01.2023 -- Dependency Update
+> * v2.0, 01.2024 -- Rewrite of AciClient

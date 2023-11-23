@@ -6,14 +6,14 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-setup(name='aciClient',
-      version='1.5',
+setup(name='aciclient',
+      version='2.0',
       description='aci communication helper class',
       url='http://www.netcloud.ch',
-      author='mze',
+      author='dak',
       author_email='nc_dev@netcloud.ch',
       license='MIT',
-      packages=['aciClient'],
+      packages=['aciclient'],
       install_requires=['requests>=2.26.0 , <3', 'pyOpenSSL>=23.0.0, <24'],
       long_description=long_description,
       long_description_content_type='text/markdown',

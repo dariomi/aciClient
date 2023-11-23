@@ -9,7 +9,7 @@ A python wrapper to the Cisco ACI REST-API.
 We support Python 3.6 and up. Python 2 is not supported and there is no plan to add support for it.
 
 ## Installation
-``pip install aciClient``
+``pip install aciclient``
 
 ## Installation for Developing
 ```
@@ -24,23 +24,19 @@ python setup.py develop
 
 ### Username/password
 ```python
-import aciClient
 import logging
+from aciclient import AciClient, AciCredentialsPassword
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-aciclient = aciClient.ACI(apic_hostname, apic_username, apic_password, refresh=False)
-try:
-    aciclient.login()
-    
+credentials = AciCredentialsPassword(ip="devnetsandboxdc.cisco.com", username="admin", password="ciscopstd")
+
+with AciClient(credentials, logger=logger)
     aciclient.getJson(uri)
     aciclient.postJson(config)
     aciclient.deleteMo(dn)
     
-    aciclient.logout()
-except Exception as e:
-    logger.exception("Stack Trace")
 ```
 
 For automatic authentication token refresh you can set variable ```refresh``` to True
@@ -70,17 +66,24 @@ except Exception as e:
 
 ## Examples
 
-### get config
+### get config without params
 ```python
-tenants = aciclient.getJson('class/fvTenant.json?order-by=fvTenant.dn|asc')
+tenants = aciclient.getJson('class/fvTenant')
+for tenant in tenants.data:
+    print(tenant["fvTenant"]["attributes"]["dn"])
+```
 
+### get config with params
+```python
+params = {"order-by": "fvTenant.dn|asc"}
+tenants = aciclient.getJson('class/fvTenant', ep_params=params)
 for mo in tenants:
     print(f'tenant DN: {mo["fvTenant"]["attributes"]["dn"]}')
 ```
 
-### post config
+### post payload without path
 ```python
-config = {
+payload = {
  "fvTenant": {
   "attributes": {
    "dn": "uni/tn-XYZ"
@@ -88,7 +91,7 @@ config = {
  }
 }
 
-aciclient.postJson(config)
+aciclient.postJson(payload)
 ```
 
 ### delete MOs
@@ -99,7 +102,7 @@ aciclient.deleteMo('uni/tn-XYZ')
 ### create snapshot
 You can specify a tenant in variable ```target_dn``` or not provide any to do a fabric-wide snapshot.
 ```python
-aci.snapshot(description='test', target_dn='/uni/tn-test')
+aciclient.snapshot(description='test', target_dn='/uni/tn-test')
 ```
 
 ## Testing
@@ -118,7 +121,7 @@ of conduct, and the process for submitting pull requests to this project.
 * **Marcel Zehnder** - *Initial work*
 * **Andreas Graber** - *Migration to open source*
 * **Richard Strnad** - *Paginagtion for large requests, various small stuff*
-* **Dario Kaelin** - *Added snapshot creation*
+* **Dario Kaelin** - *Rewrite 2.0*
 
 ## License
 
