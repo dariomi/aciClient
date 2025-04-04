@@ -7,17 +7,13 @@
 
 AciClient for doing Username/Password based RestCalls to the APIC
 """
+
 import logging
 import json
 import requests
 import threading
 
-# The modules are named different in python2/python3...
-try:
-    from urlparse import urlparse, urlunparse, parse_qsl
-    from urllib import urlencode
-except ImportError:
-    from urllib.parse import urlparse, urlunparse, urlencode, parse_qsl
+from urllib.parse import urlparse, urlunparse, urlencode, parse_qsl, ParseResult
 
 requests.packages.urllib3.disable_warnings()
 
@@ -28,14 +24,17 @@ class ACI:
     # ==============================================================================
     # constructor
     # ==============================================================================
-    def __init__(self, apicIp, apicUser, apicPasword, refresh=False):
-        self.__logger.debug('Constructor called')
+    def __init__(
+        self, apicIp, apicUser, apicPasword, refresh=False, verify: bool = False
+    ):
+        self.__logger.debug("Constructor called")
         self.apicIp = apicIp
         self.apicUser = apicUser
         self.apicPassword = apicPasword
+        self.verify = verify
 
-        self.baseUrl = 'https://' + self.apicIp + '/api/'
-        self.__logger.debug(f'BaseUrl set to: {self.baseUrl}')
+        self.baseUrl = "https://" + self.apicIp + "/api/"
+        self.__logger.debug(f"BaseUrl set to: {self.baseUrl}")
 
         self.refresh_auto = refresh
         self.refresh_next = None
@@ -45,38 +44,56 @@ class ACI:
         self.token = None
 
     def __refresh_session_timer(self, response):
-        self.__logger.debug(f'refreshing the token {self.refresh_offset}s before it expires')
-        self.refresh_next = int(response.json()['imdata'][0]['aaaLogin']['attributes']['refreshTimeoutSeconds'])
-        self.refresh_thread = threading.Timer(self.refresh_next - self.refresh_offset, self.renewCookie)
-        self.__logger.debug(f'starting thread to refresh token in {self.refresh_next - self.refresh_offset}s')
+        self.__logger.debug(
+            f"refreshing the token {self.refresh_offset}s before it expires"
+        )
+        self.refresh_next = int(
+            response.json()["imdata"][0]["aaaLogin"]["attributes"][
+                "refreshTimeoutSeconds"
+            ]
+        )
+        self.refresh_thread = threading.Timer(
+            self.refresh_next - self.refresh_offset, self.renewCookie
+        )
+        self.__logger.debug(
+            f"starting thread to refresh token in {self.refresh_next - self.refresh_offset}s"
+        )
         self.refresh_thread.start()
 
     # ==============================================================================
     # login
     # ==============================================================================
     def login(self) -> bool:
-        self.__logger.debug('login called')
+        self.__logger.debug("login called")
 
         self.session = requests.Session()
-        self.__logger.debug('Session Object Created')
+        self.__logger.debug("Session Object Created")
 
         # create credentials structure
-        userPass = json.dumps({'aaaUser': {'attributes': {'name': self.apicUser, 'pwd': self.apicPassword}}})
+        userPass = json.dumps(
+            {
+                "aaaUser": {
+                    "attributes": {"name": self.apicUser, "pwd": self.apicPassword}
+                }
+            }
+        )
 
-        self.__logger.info(f'Login to apic {self.baseUrl}')
-        response = self.session.post(self.baseUrl + 'aaaLogin.json', data=userPass, verify=False, timeout=5)
+        self.__logger.info(f"Login to apic {self.baseUrl}")
+        response = self.session.post(
+            self.baseUrl + "aaaLogin.json", data=userPass, verify=self.verify, timeout=5
+        )
 
         # Don't raise an exception for 401
         if response.status_code == 401:
-            self.__logger.error(f'Login not possible due to Error: {response.text}')
+            self.__logger.error(f"Login not possible due to Error: {response.text}")
             self.session = False
             return False
 
         # Raise a exception for all other 4xx and 5xx status_codes
         response.raise_for_status()
 
-        self.token = response.json()['imdata'][0]['aaaLogin']['attributes']['token']
-        self.__logger.debug('Successful get Token from APIC')
+        self.token = response.json()["imdata"][0]["aaaLogin"]["attributes"]["token"]
+        self.__logger.debug("Successful get Token from APIC")
 
         if self.refresh_auto:
             self.__refresh_session_timer(response=response)
@@ -86,31 +103,36 @@ class ACI:
     # logout
     # ==============================================================================
     def logout(self):
-        self.__logger.debug('logout called')
+        self.__logger.debug("logout called")
         self.refresh_auto = False
         if self.refresh_thread is not None:
             if self.refresh_thread.is_alive():
-                self.__logger.debug('Stoping refresh_auto thread')
+                self.__logger.debug("Stoping refresh_auto thread")
                 self.refresh_thread.cancel()
-        self.postJson(jsonData={'aaaUser': {'attributes': {'name': self.apicUser}}}, url='aaaLogout.json')
-        self.__logger.debug('Logout from APIC sucessfull')
+        self.postJson(
+            jsonData={"aaaUser": {"attributes": {"name": self.apicUser}}},
+            url="aaaLogout.json",
+        )
+        self.__logger.debug("Logout from APIC sucessfull")
 
     # ==============================================================================
     # renew cookie (aaaRefresh)
     # ==============================================================================
     def renewCookie(self) -> bool:
-        self.__logger.debug('Renew Cookie called')
-        response = self.session.post(self.baseUrl + 'aaaRefresh.json', verify=False)
+        self.__logger.debug("Renew Cookie called")
+        response = self.session.post(
+            self.baseUrl + "aaaRefresh.json", verify=self.verify
+        )
 
         if response.status_code == 200:
             if self.refresh_auto:
                 self.__refresh_session_timer(response=response)
-            self.token = response.json()['imdata'][0]['aaaLogin']['attributes']['token']
-            self.__logger.debug('Successfuly renewed the token')
+            self.token = response.json()["imdata"][0]["aaaLogin"]["attributes"]["token"]
+            self.__logger.debug("Successfuly renewed the token")
         else:
             self.token = False
             self.refresh_auto = False
-            self.__logger.error(f'Could not renew token. {response.text}')
+            self.__logger.error(f"Could not renew token. {response.text}")
             response.raise_for_status()
             return False
         return True
@@ -119,39 +141,34 @@ class ACI:
     # getToken
     # ==============================================================================
     def getToken(self) -> str:
-        self.__logger.debug('Get Token called')
+        self.__logger.debug("Get Token called")
         return self.token
 
     # ==============================================================================
     # getJson
     # ==============================================================================
-    def getJson(self, uri, subscription=False) -> {}:
+    def getJson(self, uri) -> {}:
         url = self.baseUrl + uri
-        self.__logger.debug(f'Get Json called url: {url}')
+        self.__logger.debug("Get Json called")
 
-        if subscription:
-            url = '{}?subscription=yes'.format(url)
-        response = self.session.get(url, verify=False)
+        self.__logger.debug(f"Get Json called url: {url}")
+        response = self.session.get(url, verify=self.verify)
 
         if response.ok:
             responseJson = response.json()
-            self.__logger.debug(f'Successful get Data from APIC: {responseJson}')
-            if subscription:
-                subscription_id = responseJson['subscriptionId']
-                self.__logger.debug(f'Returning Subscription Id: {subscription_id}')
-                return subscription_id
-            return responseJson['imdata']
+            self.__logger.debug(f"Successful get Data from APIC: {responseJson}")
+            return responseJson["imdata"]
 
         elif response.status_code == 400:
-            resp_text = response.json()['imdata'][0]['error']['attributes']['text']
-            self.__logger.error(f'Error 400 during get occured: {resp_text}')
-            if resp_text == 'Unable to process the query, result dataset is too big':
+            resp_text = response.json()["imdata"][0]["error"]["attributes"]["text"]
+            self.__logger.error(f"Error 400 during get occured: {resp_text}")
+            if resp_text == "Unable to process the query, result dataset is too big":
                 # Dataset was too big, we try to grab all the data with pagination
-                self.__logger.debug(f'Trying with Pagination, uri: {uri}')
+                self.__logger.debug(f"Trying with Pagination, uri: {uri}")
                 return self.getJsonPaged(uri)
             return resp_text
         else:
-            self.__logger.error(f'Error during get occured: {response.json()}')
+            self.__logger.error(f"Error during get occured: {response.json()}")
             return response.json()
 
     # ==============================================================================
@@ -159,7 +176,7 @@ class ACI:
     # ==============================================================================
     def getJsonPaged(self, uri) -> {}:
         url = self.baseUrl + uri
-        self.__logger.debug(f'Get Json Pagination called url: {url}')
+        self.__logger.debug(f"Get Json Pagination called url: {url}")
         parsed_url = urlparse(url)
         parsed_query = parse_qsl(parsed_url.query)
 
@@ -167,44 +184,53 @@ class ACI:
         page = 0
 
         while True:
-            parsed_query.extend([('page', page), ('page-size', '50000')])
+            parsed_query.extend([("page", page), ("page-size", "50000")])
             page += 1
-            url_to_call = urlunparse((parsed_url[0], parsed_url[1], parsed_url[2], parsed_url[3],
-                                      urlencode(parsed_query), parsed_url[5]))
-            response = self.session.get(url_to_call, verify=False)
+
+            url_to_call = self.__get_url_from_parsed(parsed_url, parsed_query)
+            response = self.session.get(url_to_call, verify=self.verify)
 
             if response.ok:
                 responseJson = response.json()
-                self.__logger.debug(f'Successful get Data from APIC: {responseJson}')
-                if responseJson['imdata']:
-                    return_data.extend(responseJson['imdata'])
+                self.__logger.debug(f"Successful get Data from APIC: {responseJson}")
+                if responseJson["imdata"]:
+                    return_data.extend(responseJson["imdata"])
                 else:
                     return return_data
 
             elif response.status_code == 400:
-                resp_text = '400: ' + response.json()['imdata'][0]['error']['attributes']['text']
-                self.__logger.error(f'Error 400 during get occured: {resp_text}')
+                resp_text = (
+                    "400: "
+                    + response.json()["imdata"][0]["error"]["attributes"]["text"]
+                )
+                self.__logger.error(f"Error 400 during get occured: {resp_text}")
                 return resp_text
 
             else:
-                self.__logger.error(f'Error during get occured: {response.json()}')
+                self.__logger.error(f"Error during get occured: {response.json()}")
                 return False
 
     # ==============================================================================
     # postJson
     # ==============================================================================
-    def postJson(self, jsonData, url='mo.json') -> {}:
-        self.__logger.debug(f'Post Json called data: {jsonData}')
-        response = self.session.post(self.baseUrl + url, verify=False, data=json.dumps(jsonData, sort_keys=True))
+    def postJson(self, jsonData, url="mo.json") -> {}:
+        self.__logger.debug(f"Post Json called data: {jsonData}")
+        response = self.session.post(
+            self.baseUrl + url,
+            verify=self.verify,
+            data=json.dumps(jsonData, sort_keys=True),
+        )
         if response.status_code == 200:
-            self.__logger.debug(f'Successful Posted Data to APIC: {response.json()}')
+            self.__logger.debug(f"Successful Posted Data to APIC: {response.json()}")
             return response.status_code
         elif response.status_code == 400:
-            resp_text = '400: ' + response.json()['imdata'][0]['error']['attributes']['text']
-            self.__logger.error(f'Error 400 during get occured: {resp_text}')
+            resp_text = (
+                "400: " + response.json()["imdata"][0]["error"]["attributes"]["text"]
+            )
+            self.__logger.error(f"Error 400 during get occured: {resp_text}")
             return resp_text
         else:
-            self.__logger.error(f'Error during get occured: {response.json()}')
+            self.__logger.error(f"Error during get occured: {response.json()}")
             response.raise_for_status()
             return response.status_code
 
@@ -212,8 +238,10 @@ class ACI:
     # deleteMo
     # ==============================================================================
     def deleteMo(self, dn) -> int:
-        self.__logger.debug(f'Delete Mo called DN: {dn}')
-        response = self.session.delete(self.baseUrl + "mo/" + dn + ".json", verify=False)
+        self.__logger.debug(f"Delete Mo called DN: {dn}")
+        response = self.session.delete(
+            self.baseUrl + "mo/" + dn + ".json", verify=self.verify
+        )
 
         # Raise Exception if http Error occurred
         response.raise_for_status()
@@ -224,7 +252,7 @@ class ACI:
     # snapshot
     # ==============================================================================
     def snapshot(self, description="snapshot", target_dn="") -> bool:
-        self.__logger.debug(f'snapshot called {description}')
+        self.__logger.debug(f"snapshot called {description}")
 
         json_payload = [
             {
@@ -239,7 +267,7 @@ class ACI:
                         "name": "aciclient",
                         "nameAlias": "",
                         "snapshot": "yes",
-                        "targetDn": f"{target_dn}"
+                        "targetDn": f"{target_dn}",
                     }
                 }
             }
@@ -247,25 +275,27 @@ class ACI:
 
         response = self.postJson(json_payload)
         if response == 200:
-            self.__logger.debug('snapshot created and triggered')
+            self.__logger.debug("snapshot created and triggered")
             return True
         else:
-            self.__logger.error(f'snapshot creation not succesfull: {response}')
+            self.__logger.error(f"snapshot creation not succesfull: {response}")
             return False
 
-# ==============================================================================
+    # ==============================================================================
     # subscribe
     # ==============================================================================
-    def subscribe(
-        self, subscription_dn: str, timeout: int = 60, query_parameters: list = []
-    ) -> {}:
-        query_parameters.append("subscription=yes")
-        query_parameters.append(f"refresh-timeout={timeout}")
+    def subscribe(self, uri: str, timeout: int = 60) -> {}:
+        self.__logger.debug("Subscribe called")
 
-        endpoint = f"{self.baseUrl}{str(subscription_dn)}?{'&'.join(query_parameters)}"
-        self.__logger.debug(f"Subscribe to: {endpoint}")
+        parsed_url = urlparse(self.baseUrl + uri)
+        parsed_query = dict(parse_qsl(parsed_url.query))
+        parsed_query.update({"subscription": "yes"})
+        parsed_query.update({"refresh-timeout": f"{timeout}"})
 
-        response = self.session.get(endpoint, verify=False)
+        url_to_call = self.__get_url_from_parsed(parsed_url, parsed_query)
+        self.__logger.debug(f"Subscribe to: {url_to_call}")
+
+        response = self.session.get(url_to_call, verify=self.verify)
         if response.status_code == 200:
             self.__logger.debug(f"Successful subscribed to APIC: {response.json()}")
             return response.json()
@@ -284,16 +314,17 @@ class ACI:
     # subscription_refresh
     # ==============================================================================
     def subscription_refresh(self, subscription_id: str) -> {}:
-        query_parameters = [f"id={subscription_id}"]
+        url = f"{self.baseUrl}/subscriptionRefresh.json"
+        parsed_url = urlparse(url)
+        parsed_query = dict(parse_qsl(parsed_url.query))
+        parsed_query.update({"id": f"{subscription_id}"})
 
-        endpoint = (
-            f"{self.baseUrl}/subscriptionRefresh.json?{'&'.join(query_parameters)}"
-        )
-        self.__logger.debug(f"Refresh subscription: {subscription_id}")
+        url_to_call = self.__get_url_from_parsed(parsed_url, parsed_query)
+        self.__logger.debug(f"Refresh subscription called url: {url_to_call}")
 
-        response = self.session.post(endpoint, verify=False)
+        response = self.session.post(url_to_call, verify=self.verify)
         if response.status_code == 200:
-            self.__logger.debug(f"Successful subscribed to APIC: {response.json()}")
+            self.__logger.debug(f"Successful refreshed subscription: {response.json()}")
             return response.json()
         elif response.status_code == 400:
             resp_text = (
@@ -305,3 +336,16 @@ class ACI:
             self.__logger.error(f"Error during get occured: {response.json()}")
             response.raise_for_status()
             return response.json()
+
+    @staticmethod
+    def __get_url_from_parsed(parsed_url: ParseResult, parsed_query: dict) -> str:
+        return urlunparse(
+            (
+                parsed_url[0],
+                parsed_url[1],
+                parsed_url[2],
+                parsed_url[3],
+                urlencode(parsed_query, safe='|()=,:.+"'),
+                parsed_url[5],
+            )
+        )
