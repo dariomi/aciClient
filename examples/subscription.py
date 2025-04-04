@@ -47,16 +47,19 @@ def main():
     time.sleep(5)
 
     # Subscribe to an ACI object
-    subscription_dn = "node/class/faultInst.json"
+    endpoint = "node/class/faultInst.json"
     timeout = 60  # Optional. Default value in ACI
-    query_parameters = ["order-by=faultInst.lastTransition|asc"]  # Optional
+    query_parameters = "order-by=faultInst.lastTransition|asc"  # Optional
 
     response = aci.subscribe(
-        subscription_dn=subscription_dn,
+        uri=f"{endpoint}?{query_parameters}",
         timeout=timeout,
-        query_parameters=query_parameters,
     )
+
     subscription_id = response["subscriptionId"]
+    initial_data = response["imdata"]
+
+    print(f"Got {len(initial_data)} objects in initial call.")
 
     while True:
         time.sleep(30)

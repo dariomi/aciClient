@@ -4,4 +4,3 @@
 > * v1.3, 06.2021 -- Snapshot creation added - Dario Kaelin
 > * v1.5, 01.2023 -- Dependency Update
 > * v1.6, 06.2024 -- Improvement for subscription - Dario Kaelin
-> * v1.7, 04.2025 -- Improvement for subscriptions - Dario Kaelin
