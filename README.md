@@ -30,7 +30,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-aciclient = aciClient.ACI(apic_hostname, apic_username, apic_password, refresh=False)
+aciclient = aciClient.ACI(apic_hostname, apic_username, apic_password, refresh=False, verify=True)
 try:
     aciclient.login()
     
@@ -43,10 +43,17 @@ except Exception as e:
     logger.exception("Stack Trace")
 ```
 
-For automatic authentication token refresh you can set variable ```refresh``` to True
 
+For automatic authentication token refresh you can set variable\
 ```python
-aciclient = aciClient.ACI(apic_hostname, apic_username, apic_password, refresh=True)    
+aciClient.ACI(<other variables>, refresh=True)
+```
+
+To disable SSL host-key checking you can set variable  
+```python
+aciClient.ACI(<other variables>, verify=False)
+# Please note that the default is currently set to False for backward compatibility.
+# This default value could change in the future!
 ```
 
 
