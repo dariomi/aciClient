@@ -16,7 +16,7 @@ import threading
 import urllib3
 from requests.adapters import HTTPAdapter
 
-from urllib.parse import urlparse, urlunparse, urlencode, parse_qsl
+from urllib.parse import urlparse, urlunparse, urlencode, parse_qsl, ParseResult
 
 requests.packages.urllib3.disable_warnings()
 
