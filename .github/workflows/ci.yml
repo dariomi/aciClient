@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    if: github.repository == 'netcloud/aciClient'
+    if: github.repository == 'dariomi/aciClient'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
