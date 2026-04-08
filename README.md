@@ -6,16 +6,25 @@ A python wrapper to the Cisco ACI REST-API.
 
 ## Python Version
 
-We support Python 3.6 and up. Python 2 is not supported and there is no plan to add support for it.
+We support Python 3.10 and up.
 
 ## Installation
-``pip install aciClient``
+With `pip`:
+
+```bash
+pip install aciClient
+```
+
+With `uv`:
+
+```bash
+uv add aciClient
+```
 
 ## Installation for Developing
-```
-git clone https://github.com/netcloud/aciclient.git
-pip install -r requirements.txt
-python setup.py develop
+```bash
+git clone https://github.com/netcloud/aciClient.git
+uv sync --group dev
 ```
 
 ## Usage
@@ -118,12 +127,6 @@ To use the subscriptions you have to:
 
 You can find example code here: examples/subscription.py
 
-## Testing
-
-```
-pip install -r requirements.txt
-python -m pytest
-```
 ## Contributing
 
 Please read [CONTRIBUTING.md](https://github.com/netcloud/aciClient/blob/master/CONTRIBUTING.md) for details on our code 
