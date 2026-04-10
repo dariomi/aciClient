@@ -51,7 +51,7 @@ def test_login_404_exception(requests_mock):
     )
     aci = ACI(apicIp=__BASE_URL, apicUser="admin", apicPasword="unkown")
     with pytest.raises(RequestException):
-        resp = aci.login()
+        aci.login()
 
 
 def test_login_refresh_ok(requests_mock):
@@ -153,45 +153,6 @@ def test_renew_cookie_exception(requests_mock):
     aci.login()
     with pytest.raises(RequestException):
         aci.renewCookie()
-
-
-def test_get_tenant_ok(requests_mock):
-    uri = "mo/uni/tn-common.json"
-    requests_mock.post(
-        f"https://{__BASE_URL}/api/aaaLogin.json",
-        json={"imdata": [{"aaaLogin": {"attributes": {"token": "tokenxyz"}}}]},
-    )
-    requests_mock.get(
-        f"https://{__BASE_URL}/api/{uri}",
-        json={
-            "imdata": [
-                {
-                    "fvTenant": {
-                        "attributes": {
-                            "annotation": "",
-                            "childAction": "",
-                            "descr": "",
-                            "dn": "uni/tn-common",
-                            "extMngdBy": "",
-                            "lcOwn": "local",
-                            "modTs": "2020-11-23T15:53:52.014+00:00",
-                            "monPolDn": "uni/tn-common/monepg-default",
-                            "name": "common",
-                            "nameAlias": "",
-                            "ownerKey": "",
-                            "ownerTag": "",
-                            "status": "",
-                            "uid": "0",
-                        }
-                    }
-                }
-            ]
-        },
-    )
-    aci = ACI(apicIp=__BASE_URL, apicUser="admin", apicPasword="unkown")
-    aci.login()
-    resp = aci.getJson(uri)
-    assert "fvTenant" in resp[0]
 
 
 def test_get_tenant_ok(requests_mock):

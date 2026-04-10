@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aciClient"
+version = "1.8"
+description = "ACI communication helper class"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Netcloud AG", email = "nc_dev@netcloud.ch" },
+]
+dependencies = [
+  "pyOpenSSL>=26.0.0,<27",
+  "requests[socks]>=2.33.1,<3",
+]
+classifiers = [
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
+
+[project.urls]
+Homepage = "https://github.com/netcloud/aciClient"
+Repository = "https://github.com/netcloud/aciClient"
+Issues = "https://github.com/netcloud/aciClient/issues"
+
+[dependency-groups]
+dev = [
+  "pytest>=9.0.2,<10",
+  "requests-mock>=1.12.1,<2",
+  "ruff>=0.13.0,<0.14",
+]
+
+[tool.setuptools]
+packages = ["aciClient"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+
+[tool.ruff]
+target-version = "py310"

@@ -9,7 +9,13 @@ Thumbs.db
 **/Thumbs.db
 **/leaf-*.html
 .venv
+.venv/
 venv
+.uv-cache/
+build/
 dist
+dist/
 *.egg-info/
+__pycache__/
 .pytest_cache
+.pytest_cache/
